@@ -394,37 +394,3 @@ async def send_admin_notification(bot_instance, text: str, reply_markup: Optiona
             logger.exception(f"Failed sending admin notification to {admin_id}")
 
 
-
-@app.get("/")
-async def home():
-    return {"message": "Bot is running"}
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-
-
-from fastapi import FastAPI
-import asyncio
-from aiogram import Bot, Dispatcher
-
-app = FastAPI()
-
-storage = MemoryStorage()
-bot = Bot(token=os.getenv("BOT_TOKEN"))
-dp = Dispatcher(bot, storage=storage)
-
-# Register all handlers
-register_handlers(dp)
-
-async def start_bot():
-    await dp.start_polling()
-
-@app.on_event("startup")
-async def on_startup():
-    asyncio.create_task(start_bot())
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    await bot.session.close()
