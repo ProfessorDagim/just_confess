@@ -5,40 +5,52 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from bot import register_handlers
 from dotenv import load_dotenv
 import os
+import aiohttp
 
-# Load env variables
+
+# Load .env
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Initialize Bot & Dispatcher
+# Init bot
 bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
-
-# Register handlers
+dp = Dispatcher(bot, storage=MemoryStorage())
 register_handlers(dp)
 
-# FastAPI App
+# FastAPI
 app = FastAPI()
 
-# ---- Run Bot Polling as background task ----
+
+# --- Aiogram Polling ---
 async def start_bot():
     await dp.start_polling(bot)
+
+
+# --- KEEP RENDER ALIVE ---
+async def keep_alive():
+    while True:
+        try:
+            async with aiohttp.ClientSession() as session:
+                await session.get("https://just-confess.onrender.com/health")
+                print("💙 KeepAlive Ping Sent")
+        except Exception as e:
+            print("KeepAlive Error:", e)
+
+        await asyncio.sleep(240)  # Every 4 minutes
+
 
 @app.on_event("startup")
 async def startup_event():
     print("🚀 Starting Polling...")
     asyncio.create_task(start_bot())
+    asyncio.create_task(keep_alive())
     print("Bot started successfully!")
 
-# ---- DO NOT CLOSE bot or session ----
-@app.on_event("shutdown")
-async def shutdown_event():
-    print("⚠️ Render triggered shutdown — ignoring bot close.")
 
 @app.get("/")
 async def root():
     return {"status": "Bot is running on Render!"}
+
 
 @app.get("/health")
 def health():
