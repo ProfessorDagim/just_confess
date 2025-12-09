@@ -15,29 +15,26 @@ bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
-# Register all message handlers
+# Register handlers
 register_handlers(dp)
 
 # FastAPI App
 app = FastAPI()
 
-# Background task holder
-polling_task = None
+# ---- Run Bot Polling as background task ----
+async def start_bot():
+    await dp.start_polling(bot)
 
 @app.on_event("startup")
 async def startup_event():
-    global polling_task
     print("🚀 Starting Polling...")
-    polling_task = asyncio.create_task(dp.start_polling())
-    print("Bot polling started successfully!")
+    asyncio.create_task(start_bot())
+    print("Bot started successfully!")
 
+# ---- DO NOT CLOSE bot or session ----
 @app.on_event("shutdown")
 async def shutdown_event():
-    global polling_task
-    print("🛑 Stopping Polling...")
-    if polling_task:
-        polling_task.cancel()
-    await bot.session.close()
+    print("⚠️ Render triggered shutdown — ignoring bot close.")
 
 @app.get("/")
 async def root():
